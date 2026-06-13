@@ -20,7 +20,6 @@ Author: **Jean-Francois Lachance-Caumartin**
 [![PQC: Kyber-1024 + X448](https://img.shields.io/badge/PQC-Kyber--1024%20%2B%20X448-b026ff.svg?style=flat-square)](#how-the-protection-works)
 [![crypto: libsodium](https://img.shields.io/badge/crypto-libsodium-1a5276.svg?style=flat-square)](https://libsodium.org)
 
-[![GitHub stars](https://img.shields.io/github/stars/effjy/pqpman?style=flat-square&color=00e5ff)](https://github.com/effjy/pqpman/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/effjy/pqpman?style=flat-square&color=b026ff)](https://github.com/effjy/pqpman/issues)
 [![Last commit](https://img.shields.io/github/last-commit/effjy/pqpman?style=flat-square&color=39ff14)](https://github.com/effjy/pqpman/commits)
 
