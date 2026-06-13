@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⛨ PQPMan v1.0.0
+# ⛨ PQPMan v1.0.1
 
 **A post-quantum password manager for the Linux desktop — your vault is sealed
 with authenticated encryption and a hybrid Kyber-1024 + X448 key
@@ -9,7 +9,7 @@ encapsulation, all behind a single master password.**
 Author: **Jean-Francois Lachance-Caumartin**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-00e5ff.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-b026ff.svg?style=flat-square)](https://github.com/effjy/pqpman/releases)
+[![Version](https://img.shields.io/badge/version-1.0.1-b026ff.svg?style=flat-square)](https://github.com/effjy/pqpman/releases)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-0e1b2b.svg?style=flat-square&logo=linux&logoColor=white)](#)
 [![Language: C](https://img.shields.io/badge/language-C-555555.svg?style=flat-square&logo=c&logoColor=white)](#)
 [![GUI: GTK3](https://img.shields.io/badge/GUI-GTK3-4e9a06.svg?style=flat-square&logo=gtk&logoColor=white)](#)
