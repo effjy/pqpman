@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=PQPMan
+GenericName=Password Manager
+Comment=Post-quantum password manager (Kyber-1024 + X448 hybrid)
+Exec=pqpman
+Icon=pqpman
+Terminal=false
+Categories=Utility;Security;GTK;
+Keywords=password;manager;vault;post-quantum;kyber;x448;crypto;security;
+StartupNotify=true
+StartupWMClass=pqpman
