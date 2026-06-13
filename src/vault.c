@@ -37,6 +37,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
 #ifdef __linux__
@@ -61,7 +63,10 @@
 /* A sane ceiling so a corrupt/hostile header can't drive a huge allocation. */
 #define MAX_VAULT_BYTES  (64u * 1024u * 1024u)   /* 64 MiB serialized */
 #define MAX_ENTRIES      1000000u
-#define MAX_FIELD_LEN    (1u * 1024u * 1024u)
+/* Per-field load cap. Kept equal to the whole-vault cap so that any field a
+ * save could legitimately write (a long note, say) can always be read back --
+ * the field still cannot exceed the already-bounded ciphertext length. */
+#define MAX_FIELD_LEN    MAX_VAULT_BYTES
 
 /* Untrusted-header KDF bounds (cover the STRONG preset comfortably). */
 #define MAX_KDF_M_COST   (4u * 1024u * 1024u)
@@ -478,8 +483,15 @@ int vault_save(vault_t *v, const char *path, const char *password,
     put_u32(hdr + 20, kp.parallelism);
     memcpy(hdr + 24, salt, SALT_LEN);
 
-    out = fopen(tmp, "wb");
-    if (!out) { seterr(err, errlen, "Cannot open output file."); goto done; }
+    /* Create the temp vault read/write for the owner only (0600); a password
+     * vault must never be world-readable. open()+fdopen() applies the mode
+     * atomically at creation rather than relying on the process umask. */
+    {
+        int fd = open(tmp, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+        if (fd < 0) { seterr(err, errlen, "Cannot open output file."); goto done; }
+        out = fdopen(fd, "wb");
+        if (!out) { close(fd); seterr(err, errlen, "Cannot open output file."); goto done; }
+    }
 
     uint8_t lenbuf[4]; put_u32(lenbuf, (uint32_t)clen);
     if (fwrite(hdr, 1, HEADER_LEN, out) != HEADER_LEN ||
@@ -489,7 +501,11 @@ int vault_save(vault_t *v, const char *path, const char *password,
         fwrite(ct, 1, (size_t)clen, out) != (size_t)clen) {
         seterr(err, errlen, "Write error."); goto done;
     }
-    if (fflush(out) != 0 || ferror(out)) { seterr(err, errlen, "Write error."); goto done; }
+    /* Flush all the way to disk before the rename, so a crash or power loss
+     * cannot publish a truncated/zero-length vault over the old one. */
+    if (fflush(out) != 0 || ferror(out) || fsync(fileno(out)) != 0) {
+        seterr(err, errlen, "Write error."); goto done;
+    }
     ret = 0;
 done:
     sodium_munlock(key, sizeof(key));

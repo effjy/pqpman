@@ -263,7 +263,11 @@ static gboolean job_done_idle(gpointer data) {
     app->pulsing = FALSE;
 
     if (app->window_gone) {
+        /* The window was closed mid-operation; on_window_destroy deferred the
+         * vault free to us because the worker was still using it. Free it now,
+         * along with the load result (if any) and the app itself. */
         if (job->loaded) vault_free(job->loaded);
+        if (app->vault) vault_free(app->vault);
         sodium_munlock(job->password, sizeof(job->password));
         g_free(job);
         g_application_release(G_APPLICATION(app->gapp));
@@ -340,6 +344,10 @@ static void spawn_job(App *app, Job *job) {
         app->pulsing = FALSE;
         sodium_munlock(job->password, sizeof(job->password));
         g_application_release(G_APPLICATION(app->gapp));
+        /* The caller disabled the window/button before spawning; restore them
+         * so a failed thread launch can't leave the UI permanently frozen. */
+        gtk_widget_set_sensitive(app->window, TRUE);
+        gtk_widget_set_sensitive(app->lk_button, TRUE);
         info_dialog(app, GTK_MESSAGE_ERROR, "Could not start worker thread.");
         g_free(job);
         if (gerr) g_error_free(gerr);
@@ -634,6 +642,9 @@ static void do_lock(App *app) {
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(app->lk_progress), 0.0);
     gtk_progress_bar_set_text(GTK_PROGRESS_BAR(app->lk_progress), "locked");
     set_status_class(app->lk_status, NULL, "Vault locked.");
+    /* The unlock button may have been disabled by the create/save that opened
+     * this session; always restore it when returning to the lock view. */
+    gtk_widget_set_sensitive(app->lk_button, TRUE);
     gtk_stack_set_visible_child_name(GTK_STACK(app->stack), "lock");
     gtk_window_set_title(GTK_WINDOW(app->window), "PQPMan \xE2\x80\x94 locked");
 }
@@ -1154,11 +1165,13 @@ static void on_window_destroy(GtkWidget *w, gpointer user) {
     (void)w;
     App *app = user;
     app->window_gone = 1;
-    if (app->vault) { vault_free(app->vault); app->vault = NULL; }
     if (app->current_job) {
-        /* a worker still runs; it owns app's lifetime via job_done_idle */
+        /* A worker still runs. For a save it is reading app->vault right now,
+         * so we must NOT free it here -- the worker owns app's lifetime and
+         * frees the vault (and app) from job_done_idle once it finishes. */
         return;
     }
+    if (app->vault) { vault_free(app->vault); app->vault = NULL; }
     if (app->master) sodium_free(app->master);
     g_free(app->vault_path);
     g_free(app->search_text);
