@@ -24,7 +24,7 @@
 #include "secure_buffer.h"
 
 #ifndef PQPMAN_VERSION
-#define PQPMAN_VERSION "1.0.0"
+#define PQPMAN_VERSION "1.0.1"
 #endif
 #define APP_ID "org.pqpman.PQPMan"
 #define PASSWORD_MAX 4096
