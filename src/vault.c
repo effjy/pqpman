@@ -418,6 +418,31 @@ int vault_remove(vault_t *v, size_t i) {
     return 0;
 }
 
+/* fsync the directory containing `path`, so the rename that publishes the new
+ * vault is itself durable -- otherwise a crash just after rename() can leave
+ * the directory entry pointing at the old (or no) file on some filesystems. */
+static void fsync_parent_dir(const char *path) {
+    char dir[4096];
+    const char *slash = strrchr(path, '/');
+    if (slash == path) {
+        dir[0] = '/'; dir[1] = '\0';
+    } else if (slash) {
+        size_t n = (size_t)(slash - path);
+        if (n >= sizeof(dir)) return;
+        memcpy(dir, path, n); dir[n] = '\0';
+    } else {
+        dir[0] = '.'; dir[1] = '\0';
+    }
+    int fd = open(dir, O_RDONLY
+#ifdef O_DIRECTORY
+                  | O_DIRECTORY
+#endif
+                  );
+    if (fd < 0) return;
+    fsync(fd);
+    close(fd);
+}
+
 /* ----- public: save / load ---------------------------------------------- */
 
 int vault_save(vault_t *v, const char *path, const char *password,
@@ -517,6 +542,7 @@ done:
         if (ret == 0 && rename(tmp, path) != 0) {
             seterr(err, errlen, "Could not write output file."); ret = -1;
         }
+        if (ret == 0) fsync_parent_dir(path);   /* make the rename durable */
         if (ret != 0) remove(tmp);
     }
     return ret;

@@ -24,7 +24,7 @@
 #include "secure_buffer.h"
 
 #ifndef PQPMAN_VERSION
-#define PQPMAN_VERSION "1.0.1"
+#define PQPMAN_VERSION "1.1.0"
 #endif
 #define APP_ID "org.pqpman.PQPMan"
 #define PASSWORD_MAX 4096
@@ -222,8 +222,7 @@ static gboolean clipboard_clear_cb(gpointer data) {
     if (cur && strcmp(cur, secret) == 0)
         gtk_clipboard_set_text(cb, "", -1);
     g_free(cur);
-    sodium_memzero(secret, strlen(secret));
-    g_free(secret);
+    sodium_free(secret);   /* locked region, zeroed on free */
     return G_SOURCE_REMOVE;
 }
 
@@ -231,9 +230,14 @@ static void copy_to_clipboard(App *app, const char *text, const char *what) {
     if (!text || !*text) return;
     GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
     gtk_clipboard_set_text(cb, text, -1);
-    /* Schedule an auto-clear so secrets don't linger on the clipboard. */
-    g_timeout_add_seconds(CLIPBOARD_CLEAR_SECONDS, clipboard_clear_cb,
-                          g_strdup(text));
+    /* Schedule an auto-clear so secrets don't linger on the clipboard. The
+     * retained comparison copy is held in locked, non-swappable memory. */
+    size_t n = strlen(text);
+    char *keep = sodium_malloc(n + 1);
+    if (keep) {
+        memcpy(keep, text, n + 1);
+        g_timeout_add_seconds(CLIPBOARD_CLEAR_SECONDS, clipboard_clear_cb, keep);
+    }
     char msg[128];
     g_snprintf(msg, sizeof(msg), "\xE2\x9C\x94 %s copied (clipboard clears in %ds)",
                what, CLIPBOARD_CLEAR_SECONDS);
@@ -394,6 +398,12 @@ static void on_unlock_or_create(GtkButton *b, gpointer user) {
     const char *path = gtk_entry_get_text(GTK_ENTRY(app->lk_path));
     const char *pw   = gtk_entry_get_text(GTK_ENTRY(app->lk_pass));
 
+    if (!app->master) {
+        info_dialog(app, GTK_MESSAGE_ERROR,
+                    "Could not allocate secure memory for the master password. "
+                    "Raise the locked-memory limit (RLIMIT_MEMLOCK) and restart.");
+        return;
+    }
     if (!path || !*path) { info_dialog(app, GTK_MESSAGE_WARNING, "Choose a vault file."); return; }
     if (!pw || !*pw)     { info_dialog(app, GTK_MESSAGE_WARNING, "Enter a master password."); return; }
     if (strlen(pw) >= PASSWORD_MAX) {
@@ -527,6 +537,24 @@ static void load_entry_into_form(App *app, size_t idx) {
     gtk_widget_set_sensitive(app->vw_delete, TRUE);
 }
 
+/* Select the list row whose vault index is idx (across the search filter), so
+ * a freshly added/saved entry stays highlighted after the store is rebuilt. */
+static void select_vault_index(App *app, gssize idx) {
+    if (idx < 0) return;
+    GtkTreeModel *m = GTK_TREE_MODEL(app->filter);
+    GtkTreeIter it;
+    if (!gtk_tree_model_get_iter_first(m, &it)) return;
+    do {
+        guint v = 0;
+        gtk_tree_model_get(m, &it, COL_IDX, &v, -1);
+        if ((gssize)v == idx) {
+            gtk_tree_selection_select_iter(
+                gtk_tree_view_get_selection(GTK_TREE_VIEW(app->vw_tree)), &it);
+            return;
+        }
+    } while (gtk_tree_model_iter_next(m, &it));
+}
+
 static void on_tree_selection(GtkTreeSelection *sel, gpointer user) {
     App *app = user;
     GtkTreeModel *model; GtkTreeIter it;
@@ -570,6 +598,7 @@ static void on_save_entry(GtkButton *b, gpointer user) {
     g_free(notes);
     set_dirty(app, TRUE);
     refresh_store(app);
+    select_vault_index(app, app->sel_index);
     gtk_button_set_label(GTK_BUTTON(app->vw_save_entry), "SAVE CHANGES");
     gtk_widget_set_sensitive(app->vw_delete, TRUE);
     set_status_class(app->vw_status, "status-ok",
@@ -719,11 +748,19 @@ static void gen_regenerate(GenDlg *g) {
         gtk_label_set_text(GTK_LABEL(g->strength_lbl), "");
         return;
     }
-    char *pw = g_malloc(length + 1);
+    /* Generate into locked, non-dumpable memory so the freshly generated
+     * password never lands in swappable heap, matching the rest of the app. */
+    char *pw = sodium_malloc(length + 1);
+    if (!pw) {
+        gtk_entry_set_text(GTK_ENTRY(g->out), "");
+        gtk_label_set_text(GTK_LABEL(g->naive_lbl), "Out of secure memory.");
+        gtk_label_set_text(GTK_LABEL(g->shannon_lbl), "");
+        gtk_label_set_text(GTK_LABEL(g->strength_lbl), "");
+        return;
+    }
     if (pwgen_generate(pw, length, classes) == 0)
         gtk_entry_set_text(GTK_ENTRY(g->out), pw);
-    sodium_memzero(pw, length + 1);
-    g_free(pw);
+    sodium_free(pw);   /* zeroes the locked region */
     gen_update_meters(g, length, classes);
 }
 
@@ -758,7 +795,11 @@ static void open_generator(App *app, gboolean into_form) {
 
     /* Output + copy */
     GtkWidget *outrow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-    g.out = gtk_entry_new();
+    /* Back the output field with libsodium guarded memory so the generated
+     * password is held in locked, non-swappable RAM like every other secret. */
+    GtkEntryBuffer *outbuf = secure_entry_buffer_new();
+    g.out = gtk_entry_new_with_buffer(outbuf);
+    g_object_unref(outbuf);
     gtk_editable_set_editable(GTK_EDITABLE(g.out), FALSE);
     gtk_widget_set_hexpand(g.out, TRUE);
     GtkWidget *copyb = gtk_button_new_with_label("Copy");
