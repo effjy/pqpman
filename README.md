@@ -31,7 +31,7 @@ Author: **Jean-Francois Lachance-Caumartin**
 
 <div align="center">
 
-![PQPMan main window](screenshot.png)
+![PQPMan main window](screenshot_1.png)
 
 *The PQPMan vault view — the entry list, the credential editor and the
 built-in password generator, all in one cyber-styled window.*
