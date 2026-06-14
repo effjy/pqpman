@@ -639,6 +639,14 @@ static void do_lock(App *app) {
     set_dirty(app, FALSE);
     gtk_entry_set_text(GTK_ENTRY(app->lk_pass), "");
     if (app->lk_confirm) gtk_entry_set_text(GTK_ENTRY(app->lk_confirm), "");
+    /* Return to the default "Open existing" mode and re-hide the create-only
+     * widgets. show_vault_view()'s gtk_widget_show_all() re-shows every widget
+     * in the stack, including these hidden lock-view rows, so we must hide them
+     * again explicitly here (matching the startup hide). */
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(app->lk_open_radio), TRUE);
+    gtk_button_set_label(GTK_BUTTON(app->lk_button), "UNLOCK");
+    gtk_widget_set_visible(app->lk_create_box, FALSE);
+    gtk_widget_set_visible(app->lk_confirm_row, FALSE);
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(app->lk_progress), 0.0);
     gtk_progress_bar_set_text(GTK_PROGRESS_BAR(app->lk_progress), "locked");
     set_status_class(app->lk_status, NULL, "Vault locked.");
