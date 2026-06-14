@@ -76,7 +76,9 @@ static const char *APP_CSS =
     "  color: #ffffff; font-weight: bold; letter-spacing: 2px; border: 1px solid #b026ff; }"
     ".action-button:hover { box-shadow: 0 0 14px rgba(176,38,255,0.8); color: #ffffff; }"
     ".accent-button { background: linear-gradient(90deg, #00b3c4, #00e5ff);"
-    "  color: #02121a; font-weight: bold; border: 1px solid #00e5ff; }"
+    "  color: #000000; font-weight: bold; border: 1px solid #00e5ff; }"
+    ".accent-button label { color: #000000; }"
+    ".accent-button:hover, .accent-button:hover label { color: #000000; }"
     ".danger-button { border-color: #ff426f; color: #ff7a98; }"
     ".danger-button:hover { box-shadow: 0 0 8px rgba(255,66,111,0.5); color: #ffffff; }"
     "treeview { background-color: #0a121e; color: #c8f7ff; font-family: monospace; }"
@@ -1274,6 +1276,7 @@ static void activate(GtkApplication *gapp, gpointer user) {
     set_window_size_clamped(app, 560, 660);
     gtk_window_set_icon_name(GTK_WINDOW(app->window), "pqpman");
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
+    gtk_window_maximize(GTK_WINDOW(app->window));
 
     GtkWidget *hb = gtk_header_bar_new();
     gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
