@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⛨ PQPMan v1.0.1
+# ⛨ PQPMan v1.1.0
 
 **A post-quantum password manager for the Linux desktop — your vault is sealed
 with authenticated encryption and a hybrid Kyber-1024 + X448 key
@@ -9,7 +9,7 @@ encapsulation, all behind a single master password.**
 Author: **Jean-Francois Lachance-Caumartin**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-00e5ff.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.1-b026ff.svg?style=flat-square)](https://github.com/effjy/pqpman/releases)
+[![Version](https://img.shields.io/badge/version-1.1.0-b026ff.svg?style=flat-square)](https://github.com/effjy/pqpman/releases)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-0e1b2b.svg?style=flat-square&logo=linux&logoColor=white)](#)
 [![Language: C](https://img.shields.io/badge/language-C-555555.svg?style=flat-square&logo=c&logoColor=white)](#)
 [![GUI: GTK3](https://img.shields.io/badge/GUI-GTK3-4e9a06.svg?style=flat-square&logo=gtk&logoColor=white)](#)
@@ -31,7 +31,7 @@ Author: **Jean-Francois Lachance-Caumartin**
 
 <div align="center">
 
-![PQPMan main window](screenshot_1.png)
+![PQPMan main window](screenshot.png)
 
 *The PQPMan vault view — the entry list, the credential editor and the
 built-in password generator, all in one cyber-styled window.*
@@ -66,7 +66,8 @@ the vault). The AEAD key is protected by your master password as follows:
 
 Nothing decrypted ever touches the disk: serialization and encryption happen
 entirely in **locked, non-dumpable memory** (no swap, no core dumps), and
-secrets are zeroed after use. The master-password fields are backed by
+secrets are zeroed after use. The master-password fields, the password
+generator's output and the clipboard's auto-clear copy are all backed by
 libsodium guarded memory.
 
 ## Features
@@ -201,6 +202,25 @@ touched.
   text (for rendering, the clipboard or the input method) in ordinary memory,
   so this hardening reduces but cannot fully eliminate exposure.
 - The entropy figures are estimates to guide password choice, not guarantees.
+- Saves are crash-safe: the vault is written to a temporary file, flushed and
+  `fsync`-ed, then atomically renamed over the old vault, and the containing
+  directory is `fsync`-ed so the replacement survives a power loss.
+
+## Changelog
+
+### v1.1.0
+
+- **Hardening:** the password generator's output field and the clipboard
+  auto-clear copy are now held in libsodium guarded (locked, non-swappable)
+  memory, like the master-password fields — generated and copied secrets no
+  longer transit ordinary swappable heap.
+- **Durability:** `vault_save` now `fsync`s the parent directory after the
+  atomic rename, so a crash immediately after saving can no longer lose the
+  newly written vault.
+- **Robustness:** unlocking/creating a vault now fails with a clear message
+  instead of crashing if secure (locked) memory for the master password could
+  not be allocated (e.g. a low `RLIMIT_MEMLOCK`).
+- **UI:** a freshly added or saved entry stays selected in the list.
 
 ## Credits
 

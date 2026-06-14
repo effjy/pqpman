@@ -5,7 +5,7 @@
 #   sudo make uninstall remove all installed files
 #   make clean          remove build artifacts
 
-VERSION := 1.0.1
+VERSION := 1.1.0
 BIN      := pqpman
 
 PREFIX   ?= /usr/local
