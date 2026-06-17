@@ -331,6 +331,9 @@ static int deserialize(vault_t *v, const uint8_t *buf, size_t len) {
         for (int k = 0; k < ENTRY_FIELDS; k++) wipe_free(fields[k]);
         return -1;
     }
+    /* No bytes should remain after the declared entries: a mismatch means a
+     * malformed (though still authenticated) plaintext, so treat it as corrupt. */
+    if (p != end) return -1;
     return 0;
 }
 

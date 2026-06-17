@@ -36,8 +36,32 @@ int pwgen_generate(char *out, size_t length, unsigned classes) {
     if (pool_len == 0) return -1;
     if (length < PWGEN_MIN_LEN || length > PWGEN_MAX_LEN) return -1;
 
-    for (size_t i = 0; i < length; i++)
+    /* Each selected class as its own sub-pool, so we can guarantee at least one
+     * character from every class the user asked for (many sites enforce this). */
+    struct { unsigned flag; const char *set; } cls[] = {
+        { PWGEN_LOWER, LOWER }, { PWGEN_UPPER, UPPER },
+        { PWGEN_DIGITS, DIGITS }, { PWGEN_SYMBOLS, SYMBOLS },
+    };
+
+    size_t i = 0;
+    /* Seed one character from each selected class. PWGEN_MIN_LEN (4) is >= the
+     * number of classes, so this never overflows out for a valid length. */
+    for (size_t c = 0; c < sizeof(cls) / sizeof(cls[0]); c++) {
+        if (!(classes & cls[c].flag)) continue;
+        size_t set_len = strlen(cls[c].set);
+        out[i++] = cls[c].set[randombytes_uniform((uint32_t)set_len)];
+    }
+    /* Fill the remainder from the combined pool. */
+    for (; i < length; i++)
         out[i] = pool[randombytes_uniform((uint32_t)pool_len)];
+
+    /* Fisher-Yates shuffle so the guaranteed characters are not stuck at the
+     * front (unbiased: randombytes_uniform has no modulo bias). */
+    for (size_t k = length; k > 1; k--) {
+        size_t j = randombytes_uniform((uint32_t)k);
+        char t = out[k - 1]; out[k - 1] = out[j]; out[j] = t;
+    }
+
     out[length] = '\0';
     return 0;
 }
