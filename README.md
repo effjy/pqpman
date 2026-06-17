@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://github.com/effjy/pqpman/"><img src="titles/pqpman-v110-title.svg" height="52" alt="PQPMan v1.1.0"></a>
+<a href="https://github.com/effjy/pqpman/"><img src="titles/pqpman-v111-title.svg" height="52" alt="PQPMan v1.1.0"></a>
 
 **A post-quantum password manager for the Linux desktop — your vault is sealed
 with authenticated encryption and a hybrid Kyber-1024 + X448 key
