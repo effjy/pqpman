@@ -9,7 +9,7 @@ encapsulation, all behind a single master password.**
 Author: **Jean-Francois Lachance-Caumartin**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-00e5ff.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.0-b026ff.svg?style=flat-square)](https://github.com/effjy/pqpman/releases)
+[![Version](https://img.shields.io/badge/version-1.1.1-b026ff.svg?style=flat-square)](https://github.com/effjy/pqpman/releases)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-0e1b2b.svg?style=flat-square&logo=linux&logoColor=white)](#)
 [![Language: C](https://img.shields.io/badge/language-C-555555.svg?style=flat-square&logo=c&logoColor=white)](#)
 [![GUI: GTK3](https://img.shields.io/badge/GUI-GTK3-4e9a06.svg?style=flat-square&logo=gtk&logoColor=white)](#)
@@ -206,6 +206,24 @@ touched.
   directory is `fsync`-ed so the replacement survives a power loss.
 
 ## Changelog
+
+### v1.1.1
+
+- **Hardening:** the libsodium-backed secure entry buffer now zeroes the unused
+  tail of its guarded allocation on every edit, so a typed-then-cleared password
+  (e.g. on lock) no longer lingers in locked memory until the widget is freed.
+- **Hardening:** the clipboard auto-clear copy is now wiped through a source
+  destroy notify, so the retained secret is zeroed even if the app quits before
+  the 25-second timer fires.
+- **Generator:** generated passwords now contain at least one character from
+  each selected class (lower/upper/digits/symbols), shuffled into a random
+  position, so they satisfy common site composition rules.
+- **Robustness:** `ensure_cap` guards its capacity doubling against integer
+  overflow, and `deserialize` rejects trailing bytes after the declared entries
+  as corruption.
+- **UI:** creating a vault now stays on the lock screen until the initial save
+  succeeds; a failed save rolls back the session and reports the error instead
+  of stranding you in the vault view for a file that was never written.
 
 ### v1.1.0
 
