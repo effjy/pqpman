@@ -47,19 +47,19 @@ static const char *APP_CSS =
     "label { color: #9fd6e6; font-family: monospace; }"
     ".field-label { color: #5fb4c9; letter-spacing: 1px; }"
     ".brand { color: #00e5ff; font-family: monospace; font-weight: bold;"
-    "  font-size: 24px; letter-spacing: 6px; }"
+    "  font-size: 18px; letter-spacing: 5px; }"
     ".brand-pq { color: #b026ff; }"
     ".subtitle { color: #3d7d8f; font-size: 10px; letter-spacing: 4px; }"
     ".section { color: #b026ff; font-family: monospace; letter-spacing: 2px;"
     "  font-weight: bold; }"
     "entry { background-color: #0c1421; color: #d8feff; border: 1px solid #14384a;"
-    "  border-radius: 4px; padding: 7px; font-family: monospace; caret-color: #00e5ff; }"
+    "  border-radius: 4px; padding: 3px 7px; min-height: 0; font-family: monospace; caret-color: #00e5ff; }"
     "entry:focus { border-color: #00e5ff; box-shadow: 0 0 6px rgba(0,229,255,0.6); }"
     "textview, textview text { background-color: #0c1421; color: #d8feff;"
     "  font-family: monospace; }"
     "combobox box, combobox button, combobox { background-color: #0c1421;"
     "  color: #d8feff; border: 1px solid #14384a; border-radius: 4px;"
-    "  font-family: monospace; }"
+    "  min-height: 0; padding: 0 4px; font-family: monospace; }"
     "combobox button:hover { border-color: #00e5ff; }"
     "radiobutton, checkbutton { color: #9fd6e6; font-family: monospace; }"
     "radiobutton check, checkbutton check { background-color: #0c1421;"
@@ -67,7 +67,7 @@ static const char *APP_CSS =
     "radiobutton check:checked, checkbutton check:checked {"
     "  background-color: #00e5ff; border-color: #00e5ff; }"
     "button { background: #0e1b2b; color: #9fe9ff; border: 1px solid #1d4c5e;"
-    "  border-radius: 4px; padding: 6px 12px; font-family: monospace; letter-spacing: 1px; }"
+    "  border-radius: 4px; padding: 3px 12px; min-height: 0; font-family: monospace; letter-spacing: 1px; }"
     "button:hover { border-color: #00e5ff; color: #ffffff;"
     "  box-shadow: 0 0 8px rgba(0,229,255,0.45); }"
     "button:active { background: #102a3a; }"
@@ -87,9 +87,9 @@ static const char *APP_CSS =
     "  border: 1px solid #14384a; font-family: monospace; }"
     "progressbar text { color: #9fe9ff; font-family: monospace; font-size: 10px; }"
     "progressbar trough { background-color: #0c1421; border: 1px solid #14384a;"
-    "  border-radius: 4px; min-height: 16px; }"
+    "  border-radius: 4px; min-height: 12px; }"
     "progressbar progress { background: linear-gradient(90deg, #7d1bd6, #b026ff);"
-    "  border-radius: 4px; min-height: 16px; box-shadow: 0 0 10px rgba(176,38,255,0.6); }"
+    "  border-radius: 4px; min-height: 12px; box-shadow: 0 0 10px rgba(176,38,255,0.6); }"
     ".status-ok { color: #39ff14; }"
     ".status-err { color: #ff426f; }"
     ".status-run { color: #00e5ff; }"
@@ -938,9 +938,9 @@ static void add_class(GtkWidget *w, const char *cls) {
 }
 
 static GtkWidget *build_lock_view(App *app) {
-    GtkWidget *root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    GtkWidget *root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     add_class(root, "pq-root");
-    gtk_container_set_border_width(GTK_CONTAINER(root), 22);
+    gtk_container_set_border_width(GTK_CONTAINER(root), 14);
 
     GtkWidget *brand = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(brand),
