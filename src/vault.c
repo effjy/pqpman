@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -376,6 +377,26 @@ const vault_entry_t *vault_get(const vault_t *v, size_t i) {
 
 /* ----- public: entry management ----------------------------------------- */
 
+/* Case-insensitive ordering of two entries by title, with a case-sensitive
+ * tie-break so the order is total and stable. */
+static int title_cmp(const char *a, const char *b) {
+    int c = strcasecmp(a, b);
+    return c ? c : strcmp(a, b);
+}
+
+/* Index at which an entry with the given title should be inserted to keep
+ * v->entries sorted by title (binary search; entries are always sorted). New
+ * entries sort after existing entries with an equal title. */
+static size_t insert_pos(const vault_t *v, const char *title) {
+    size_t lo = 0, hi = v->count;
+    while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2;
+        if (title_cmp(v->entries[mid].title, title) <= 0) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo;
+}
+
 size_t vault_add(vault_t *v, const char *title, const char *url,
                  const char *username, const char *password, const char *notes) {
     if (v->count == v->cap) {
@@ -385,31 +406,46 @@ size_t vault_add(vault_t *v, const char *title, const char *url,
         v->entries = ne;
         v->cap = nc;
     }
-    vault_entry_t *e = &v->entries[v->count];
-    e->title = dup_field(title);   e->url = dup_field(url);
-    e->username = dup_field(username); e->password = dup_field(password);
-    e->notes = dup_field(notes);
-    if (!e->title || !e->url || !e->username || !e->password || !e->notes) {
-        entry_wipe(e);
+    /* Build the entry off to the side, then slot it into sorted position. */
+    vault_entry_t e;
+    e.title = dup_field(title);   e.url = dup_field(url);
+    e.username = dup_field(username); e.password = dup_field(password);
+    e.notes = dup_field(notes);
+    if (!e.title || !e.url || !e.username || !e.password || !e.notes) {
+        entry_wipe(&e);
         return (size_t)-1;
     }
-    return v->count++;
+    size_t pos = insert_pos(v, e.title);
+    memmove(&v->entries[pos + 1], &v->entries[pos],
+            (v->count - pos) * sizeof(v->entries[0]));
+    v->entries[pos] = e;
+    v->count++;
+    return pos;
 }
 
-int vault_update(vault_t *v, size_t i, const char *title, const char *url,
-                 const char *username, const char *password, const char *notes) {
-    if (i >= v->count) return -1;
+size_t vault_update(vault_t *v, size_t i, const char *title, const char *url,
+                    const char *username, const char *password, const char *notes) {
+    if (i >= v->count) return (size_t)-1;
     char *nt = dup_field(title), *nu = dup_field(url), *nn = dup_field(username);
     char *np = dup_field(password), *no = dup_field(notes);
     if (!nt || !nu || !nn || !np || !no) {
         wipe_free(nt); wipe_free(nu); wipe_free(nn); wipe_free(np); wipe_free(no);
-        return -1;
+        return (size_t)-1;
     }
     entry_wipe(&v->entries[i]);
-    v->entries[i].title = nt;  v->entries[i].url = nu;
-    v->entries[i].username = nn; v->entries[i].password = np;
-    v->entries[i].notes = no;
-    return 0;
+    vault_entry_t e;
+    e.title = nt; e.url = nu; e.username = nn; e.password = np; e.notes = no;
+    /* The title may have changed, so move the entry to keep the list sorted.
+     * Lift it out, close the gap, then re-insert at its sorted position. */
+    memmove(&v->entries[i], &v->entries[i + 1],
+            (v->count - i - 1) * sizeof(v->entries[0]));
+    v->count--;
+    size_t pos = insert_pos(v, e.title);
+    memmove(&v->entries[pos + 1], &v->entries[pos],
+            (v->count - pos) * sizeof(v->entries[0]));
+    v->entries[pos] = e;
+    v->count++;
+    return pos;
 }
 
 int vault_remove(vault_t *v, size_t i) {

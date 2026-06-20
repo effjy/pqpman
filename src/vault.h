@@ -64,14 +64,18 @@ int            vault_is_hybrid(const vault_t *v);
 size_t               vault_count(const vault_t *v);
 const vault_entry_t *vault_get(const vault_t *v, size_t index);
 
-/* Add a new entry (fields are copied; NULL is treated as ""). Returns the
- * index of the new entry, or (size_t)-1 on allocation failure. */
+/* Add a new entry (fields are copied; NULL is treated as ""). Entries are kept
+ * sorted by title (case-insensitive), so the entry is inserted at its sorted
+ * position. Returns the index of the new entry, or (size_t)-1 on allocation
+ * failure. */
 size_t vault_add(vault_t *v, const char *title, const char *url,
                  const char *username, const char *password, const char *notes);
 
-/* Replace the fields of an existing entry. Returns 0 on success. */
-int vault_update(vault_t *v, size_t index, const char *title, const char *url,
-                 const char *username, const char *password, const char *notes);
+/* Replace the fields of an existing entry. Because a changed title can alter
+ * the sort order, the entry may be moved; returns the entry's new index, or
+ * (size_t)-1 on failure (bad index or allocation failure). */
+size_t vault_update(vault_t *v, size_t index, const char *title, const char *url,
+                    const char *username, const char *password, const char *notes);
 
 /* Remove the entry at index, wiping its secrets. Returns 0 on success. */
 int vault_remove(vault_t *v, size_t index);

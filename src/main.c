@@ -617,9 +617,11 @@ static void on_save_entry(GtkButton *b, gpointer user) {
         if (idx == (size_t)-1) { info_dialog(app, GTK_MESSAGE_ERROR, "Out of memory."); g_free(notes); return; }
         app->sel_index = (gssize)idx;
     } else {
-        if (vault_update(app->vault, (size_t)app->sel_index, title, url, user_, pass, notes) != 0) {
+        size_t idx = vault_update(app->vault, (size_t)app->sel_index, title, url, user_, pass, notes);
+        if (idx == (size_t)-1) {
             info_dialog(app, GTK_MESSAGE_ERROR, "Could not update entry."); g_free(notes); return;
         }
+        app->sel_index = (gssize)idx;
     }
     g_free(notes);
     set_dirty(app, TRUE);
